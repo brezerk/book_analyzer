@@ -45,7 +45,7 @@ class BookRow(object):
         if not isinstance(order_id, str) or not order_id:
             raise ValueError("Order id should be not empty string")
         self.__order_id = order_id
-        if side not in [D_SIDE_ASK, D_SIDE_BID, None]:
+        if side not in [D_SIDE_ASK, D_SIDE_BID, ""]:
             raise ValueError("Invalid side: %s" % side)
         self.__side = side
         if price:
