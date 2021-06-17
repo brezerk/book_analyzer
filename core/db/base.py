@@ -24,16 +24,31 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import sys
-import errno
-
+# app imports
+from core.defines import *
 from core.logger import logger
+from core.exceptions import FileLoadError
+
+__author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
+__license__ = "CC0"
 
 
-def die(message):
-    # Type: str -> None
+class BaseDatabase(object):
     """
-    Print error and dies
+    Base class for database object
     """
-    logger.error(message)
-    sys.exit(errno.EAGAIN)
+
+    def __init__(self):
+        self.__storage = None
+
+    def insert(self, timestamp, order_id, side, price, size):
+        pass
+
+    def delete(self, order_id, size):
+        pass
+
+    def search(self, side, size):
+        pass
+
+    def search_metadata(self, side, size):
+        pass

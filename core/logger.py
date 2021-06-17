@@ -41,4 +41,3 @@ handler.setFormatter(formatter)
 logger = logging.getLogger('BookAnalyzer')
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
-

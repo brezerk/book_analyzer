@@ -39,4 +39,3 @@ D_ORDER_REM = 'R'
 # Side
 D_SIDE_ASK = 'S'
 D_SIDE_BID = 'B'
-

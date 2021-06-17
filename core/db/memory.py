@@ -24,16 +24,47 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import sys
-import errno
-
+# app imports
+from core.defines import *
+from core.db.base import BaseDatabase
+from core.db.metadata import Metadata
+from core.db.types.bookrow import BookRow
 from core.logger import logger
+from core.exceptions import FileLoadError
 
 
-def die(message):
-    # Type: str -> None
+__author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
+__license__ = "CC0"
+
+
+class MemoryDatabase(BaseDatabase):
     """
-    Print error and dies
+    In memory test database
     """
-    logger.error(message)
-    sys.exit(errno.EAGAIN)
+    def __init__(self):
+        self.__storage = 'memory'
+        self.__asks = []
+        self.__bids = []
+        self.__asks_metadata = Metadata()
+        self.__bids_metadata = Metadata()
+
+    def insert(self, timestamp, order_id, side, price, size):
+        # Type: (int, str, str, int, int) -> None
+        row = BookRow(timestamp, order_id, price, size)
+        if side == D_SIDE_ASK:
+            self.__asks.append(row)
+            self.__asks_metadata.append(row)
+        elif side == D_SIDE_BID:
+            self.__bids.append(row)
+            self.__bids_metadata.append(row)
+        else:
+            logger.error("Unknown side '%s'", side)
+
+    def delete(self, order_id, size):
+        pass
+
+    def search(self, side, size):
+        pass
+
+    def search_metadata(self, side, size):
+        pass

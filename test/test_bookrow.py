@@ -24,57 +24,45 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import unittest
 import os
-import csv
-import sys
-import string
-import random
-
-from itertools import groupby
-from operator import itemgetter
-
-# app imports
-from core.defines import *
-from core.logger import logger
-from core.exceptions import FileLoadError
 
 __author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
 __license__ = "CC0"
 
+# app imports
+from core.db.types.bookrow import BookRow
+from core.defines import D_SIDE_ASK
 
-class BookAnalyzer:
-    """
-    Implements BookAnalyzer core logic
 
-    Properties:
-    """
+class TestBookrow(unittest.TestCase):
+    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-    def __init__(self, target_size):
-        # Type: int -> None
+    def setUp(self):
+        pass
+
+    def test_init(self):
         """
-        Initialize the board and map
-        Generate an board with random chars if x and y passed
+        Test expected init vals
         """
-        self.__target_size = target_size
-        self.__stream = sys.stdin
+        row = BookRow(100500, 'q', D_SIDE_ASK, 9000, 100)
+        self.assertEqual(row.get_timestamp(), 100500)
+        self.assertEqual(row.get_order_id(), 'q')
+        self.assertEqual(row.get_side(), D_SIDE_ASK)
+        self.assertEqual(row.get_price(), 9000)
+        self.assertEqual(row.get_size(), 100)
 
-    @classmethod
-    def load(cls, target_size, filename):
-        # Type: BookAnalyzer, int, str -> BookAnalyzer
+    def test_init_raises(self):
         """
-        Load board from csv file returns an class instance
-
-        Keyword arguments:
-            filename -- full path to the file
+        Test expected init vals
         """
-        if not os.path.exists(filename):
-            raise FileLoadError("File '%s' not found" % filename)
-
-        instance = cls(target_size=target_size)
-        instance.__stream = open(filename, 'r')
-
-        return instance
-
-    def run(self):
-        # Type: () -> None
-        print("Logic")
+        with self.assertRaises(ValueError):
+            row = BookRow("QUAKE", 'q', D_SIDE_ASK, 90.00, 100)
+        with self.assertRaises(ValueError):
+            row = BookRow(100500, 3, D_SIDE_ASK, 90.00, 100)
+        with self.assertRaises(ValueError):
+            row = BookRow(100500, 'q', "ARENA", 90.33, 100)
+        with self.assertRaises(ValueError):
+            row = BookRow(100500, 'q', D_SIDE_ASK, "RULEZ", 100)
+        with self.assertRaises(ValueError):
+            row = BookRow(100500, 'q', D_SIDE_ASK, 90.10, "Q3DM6")

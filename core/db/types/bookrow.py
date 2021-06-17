@@ -24,15 +24,6 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import os
-import csv
-import sys
-import string
-import random
-
-from itertools import groupby
-from operator import itemgetter
-
 # app imports
 from core.defines import *
 from core.logger import logger
@@ -42,39 +33,43 @@ __author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
 __license__ = "CC0"
 
 
-class BookAnalyzer:
+class BookRow(object):
     """
-    Implements BookAnalyzer core logic
-
-    Properties:
+    BookRow class to be used with NoSQL DBs like redis or test memory db
     """
+    def __init__(self, timestamp, order_id, side, price, size):
+        # Type: (int, str, str, int, int) -> None
+        if not isinstance(timestamp, int) or timestamp <= 0:
+            raise ValueError("Timestamp should be positive integer")
+        self.__timestamp = timestamp
+        if not isinstance(order_id, str) or not order_id:
+            raise ValueError("Order id should be not empty string")
+        self.__order_id = order_id
+        if side not in [D_SIDE_ASK, D_SIDE_BID]:
+            raise ValueError("Invalid side")
+        self.__side = side
+        if price:
+            if not (isinstance(price, float) or isinstance(price, int)) or price <= 0:
+                raise ValueError("Price should be positive double")
+        if isinstance(price, int):
+            self.__price = float(price)
+        else:
+            self.__price = price
+        if not isinstance(size, int) or size <= 0:
+            raise ValueError("Size should be positive integer")
+        self.__size = size
 
-    def __init__(self, target_size):
-        # Type: int -> None
-        """
-        Initialize the board and map
-        Generate an board with random chars if x and y passed
-        """
-        self.__target_size = target_size
-        self.__stream = sys.stdin
+    def get_timestamp(self):
+        return self.__timestamp
 
-    @classmethod
-    def load(cls, target_size, filename):
-        # Type: BookAnalyzer, int, str -> BookAnalyzer
-        """
-        Load board from csv file returns an class instance
+    def get_order_id(self):
+        return self.__order_id
 
-        Keyword arguments:
-            filename -- full path to the file
-        """
-        if not os.path.exists(filename):
-            raise FileLoadError("File '%s' not found" % filename)
+    def get_side(self):
+        return self.__side
 
-        instance = cls(target_size=target_size)
-        instance.__stream = open(filename, 'r')
+    def get_price(self):
+        return self.__price
 
-        return instance
-
-    def run(self):
-        # Type: () -> None
-        print("Logic")
+    def get_size(self):
+        return self.__size
