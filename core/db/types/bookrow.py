@@ -38,15 +38,15 @@ class BookRow(object):
     BookRow class to be used with NoSQL DBs like redis or test memory db
     """
     def __init__(self, timestamp, order_id, side, price, size):
-        # Type: (int, str, str, int, int) -> None
+        # type: (int, str, str, float, int) -> None
         if not isinstance(timestamp, int) or timestamp <= 0:
             raise ValueError("Timestamp should be positive integer")
         self.__timestamp = timestamp
         if not isinstance(order_id, str) or not order_id:
             raise ValueError("Order id should be not empty string")
         self.__order_id = order_id
-        if side not in [D_SIDE_ASK, D_SIDE_BID]:
-            raise ValueError("Invalid side")
+        if side not in [D_SIDE_ASK, D_SIDE_BID, None]:
+            raise ValueError("Invalid side: %s" % side)
         self.__side = side
         if price:
             if not (isinstance(price, float) or isinstance(price, int)) or price <= 0:
@@ -60,16 +60,21 @@ class BookRow(object):
         self.__size = size
 
     def get_timestamp(self):
+        # type: () -> int
         return self.__timestamp
 
     def get_order_id(self):
+        # type: () -> str
         return self.__order_id
 
     def get_side(self):
+        # type: () -> str
         return self.__side
 
     def get_price(self):
+        # type: () -> float
         return self.__price
 
     def get_size(self):
+        # type: () -> int
         return self.__size

@@ -52,29 +52,57 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(metadata.get_orders(), [])
         self.assertEqual(metadata.get_index(), [])
 
-    def test_append_correct(self):
+    def test_append_correct_ask(self):
         """
         Test append with correct values
         """
-        metadata = Metadata()
+        metadata = Metadata(side=D_SIDE_ASK)
         metadata.append(BookRow(28800538, 'b', D_SIDE_ASK, 44.26, 100))
         self.assertEqual(metadata.get_count(), 100)
         self.assertEqual(metadata.get_orders(), [[44.26, 100]])
         self.assertEqual(metadata.get_index(), ['b'])
+        self.assertEqual(metadata.has_index('b'), True)
         metadata.append(BookRow(28800633, 'c', D_SIDE_ASK, 14.26, 50))
         self.assertEqual(metadata.get_count(), 150)
         self.assertEqual(metadata.get_orders(), [[14.26, 50], [44.26, 100]])
         self.assertEqual(metadata.get_index(), ['c', 'b'])
+        self.assertEqual(metadata.has_index('c'), True)
+        self.assertEqual(metadata.has_index('b'), True)
         metadata.append(BookRow(28800833, 'z', D_SIDE_ASK, 74.00, 10))
         self.assertEqual(metadata.get_count(), 160)
         self.assertEqual(metadata.get_orders(), [[14.26, 50], [44.26, 100], [74.00, 10]])
         self.assertEqual(metadata.get_index(), ['c', 'b', 'z'])
+        self.assertEqual(metadata.has_index('c'), True)
+        self.assertEqual(metadata.has_index('b'), True)
+        self.assertEqual(metadata.has_index('z'), True)
+
+    def test_append_correct_bid(self):
+        """
+        Test append with correct values
+        """
+        metadata = Metadata(side=D_SIDE_BID)
+        metadata.append(BookRow(28800538, 'b', D_SIDE_BID, 44.26, 100))
+        self.assertEqual(metadata.get_count(), 100)
+        self.assertEqual(metadata.get_orders(), [[44.26, 100]])
+        self.assertEqual(metadata.get_index(), ['b'])
+        self.assertEqual(metadata.has_index('b'), True)
+        metadata.append(BookRow(28800633, 'c', D_SIDE_BID, 14.26, 50))
+        self.assertEqual(metadata.get_count(), 150)
+        self.assertEqual(metadata.get_orders(), [[44.26, 100], [14.26, 50]])
+        self.assertEqual(metadata.get_index(), ['b', 'c'])
+        self.assertEqual(metadata.has_index('c'), True)
+        self.assertEqual(metadata.has_index('b'), True)
+        metadata.append(BookRow(28800833, 'z', D_SIDE_BID, 74.00, 10))
+        self.assertEqual(metadata.get_count(), 160)
+        self.assertEqual(metadata.get_orders(), [[74.00, 10], [44.26, 100], [14.26, 50]])
+        self.assertEqual(metadata.get_index(), ['z', 'b', 'c'])
+        self.assertEqual(metadata.has_index('c'), True)
 
     def test_append_dups(self):
         """
         Test append with dups
         """
-        metadata = Metadata()
+        metadata = Metadata(side=D_SIDE_ASK)
         metadata.append(BookRow(28800538, 'b', D_SIDE_ASK, 44.26, 100))
         self.assertEqual(metadata.get_count(), 100)
         self.assertEqual(metadata.get_orders(), [[44.26, 100]])
@@ -88,16 +116,16 @@ class TestMetadata(unittest.TestCase):
         """
         Test deleteing correct values
         """
-        metadata = Metadata()
+        metadata = Metadata(side=D_SIDE_ASK)
         metadata.append(BookRow(28800538, 'b', D_SIDE_ASK, 44.26, 100))
         metadata.append(BookRow(28800633, 'c', D_SIDE_ASK, 14.26, 50))
         metadata.append(BookRow(28800833, 'z', D_SIDE_ASK, 74.00, 10))
         self.assertEqual(metadata.get_index(), ['c', 'b', 'z'])
-        metadata.delete(BookRow(28800633, 'b', D_SIDE_BID, None, 100))
+        metadata.delete(BookRow(28800633, 'b', D_SIDE_ASK, None, 100))
         self.assertEqual(metadata.get_count(), 60)
         self.assertEqual(metadata.get_orders(), [[14.26, 50], [74.00, 10]])
         self.assertEqual(metadata.get_index(), ['c', 'z'])
-        metadata.delete(BookRow(28800633, 'c', D_SIDE_BID, None, 10))
+        metadata.delete(BookRow(28800633, 'c', D_SIDE_ASK, None, 10))
         self.assertEqual(metadata.get_count(), 50)
         self.assertEqual(metadata.get_orders(), [[14.26, 40], [74.00, 10]])
         self.assertEqual(metadata.get_index(), ['c', 'z'])
@@ -106,24 +134,27 @@ class TestMetadata(unittest.TestCase):
         """
         Test deleteing correct values
         """
-        metadata = Metadata()
+        metadata = Metadata(side=D_SIDE_ASK)
         metadata.append(BookRow(28800633, 'c', D_SIDE_ASK, 14.26, 50))
         metadata.append(BookRow(28800833, 'z', D_SIDE_ASK, 74.00, 10))
         self.assertEqual(metadata.get_index(), ['c', 'z'])
-        metadata.delete(BookRow(28800633, 'x', D_SIDE_BID, None, 100))
+        metadata.delete(BookRow(28800633, 'x', D_SIDE_ASK, None, 100))
         self.assertEqual(metadata.get_count(), 60)
         self.assertEqual(metadata.get_orders(), [[14.26, 50], [74.00, 10]])
         self.assertEqual(metadata.get_index(), ['c', 'z'])
-        metadata.delete(BookRow(28800633, 'c', D_SIDE_BID, None, 100500))
+        metadata.delete(BookRow(28800633, 'c', D_SIDE_ASK, None, 100500))
         self.assertEqual(metadata.get_count(), 10)
         self.assertEqual(metadata.get_orders(), [[74.00, 10]])
         self.assertEqual(metadata.get_index(), ['z'])
+        self.assertEqual(metadata.has_index('q'), False)
+        self.assertEqual(metadata.has_index('t'), False)
+        self.assertEqual(metadata.has_index('za'), False)
 
     def test_append_get_order_correct(self):
         """
         Test append with correct values
         """
-        metadata = Metadata()
+        metadata = Metadata(side=D_SIDE_ASK)
         metadata.append(BookRow(28800538, 'b', D_SIDE_ASK, 44.26, 100))
         metadata.append(BookRow(28800633, 'c', D_SIDE_ASK, 14.26, 50))
         metadata.append(BookRow(28800833, 'z', D_SIDE_ASK, 74.00, 10))
@@ -137,7 +168,7 @@ class TestMetadata(unittest.TestCase):
         """
         Test append with correct values
         """
-        metadata = Metadata()
+        metadata = Metadata(side=D_SIDE_ASK)
         metadata.append(BookRow(28800538, 'b', D_SIDE_ASK, 44.26, 100))
         metadata.append(BookRow(28800633, 'c', D_SIDE_ASK, 14.26, 50))
         metadata.append(BookRow(28800833, 'z', D_SIDE_ASK, 74.00, 10))

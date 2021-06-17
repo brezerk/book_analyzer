@@ -97,7 +97,7 @@ if __name__ == "__main__":
     # sanity validators
     try:
         if filename:
-            filename = os.path.abspath(filename[0])
+            filename = os.path.abspath(filename)
             if not os.path.exists(filename):
                 raise ValidationError("File '%s' not found" % filename)
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
             raise ValidationError("Got '%s', but target‐size shares can't be less than 0" % target_size)
 
     except ValidationError as exp:
-        die(exp)
+        die(str(exp))
 
     book = None
 

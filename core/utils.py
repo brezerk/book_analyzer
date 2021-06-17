@@ -31,7 +31,7 @@ from core.logger import logger
 
 
 def die(message):
-    # Type: str -> None
+    # type: (str) -> None
     """
     Print error and dies
     """

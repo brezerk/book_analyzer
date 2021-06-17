@@ -43,28 +43,62 @@ class MemoryDatabase(BaseDatabase):
     """
     def __init__(self):
         self.__storage = 'memory'
-        self.__asks = []
-        self.__bids = []
-        self.__asks_metadata = Metadata()
-        self.__bids_metadata = Metadata()
+        self.__asks = Metadata(side=D_SIDE_ASK)
+        self.__bids = Metadata(side=D_SIDE_BID)
 
-    def insert(self, timestamp, order_id, side, price, size):
-        # Type: (int, str, str, int, int) -> None
-        row = BookRow(timestamp, order_id, price, size)
+    def add(self, row):
+        # type: (BookRow) -> None
+        side = row.get_side()
         if side == D_SIDE_ASK:
             self.__asks.append(row)
-            self.__asks_metadata.append(row)
         elif side == D_SIDE_BID:
             self.__bids.append(row)
-            self.__bids_metadata.append(row)
         else:
             logger.error("Unknown side '%s'", side)
 
-    def delete(self, order_id, size):
-        pass
+    def remove(self, row):
+        # type: (BookRow) -> None
+        index = row.get_order_id()
+        if self.__asks.has_index(index):
+            self.__asks.delete(row)
+        elif self.__bids.has_index(index):
+            self.__bids.delete(row)
+        else:
+            logger.error("Order ID '%s' is not in the list. Skip.", index)
 
     def search(self, side, size):
-        pass
+        # type: (str, int) -> float
+        amount = 0.0
+        left_size = size
+        if side == D_SIDE_ASK:
+            if self.__asks.get_count() >= size:
+                orders = self.__asks.get_orders()
+                for order in orders:
+                    order_price = order[0]
+                    order_size = order[1]
+                    if order_size >= left_size:
+                        amount = amount + order_price * left_size
+                        break
+                    else:
+                        amount = amount + order_price * order_size
+                        left_size = left_size - order_size
+                logger.debug("B %s [%s]" % (amount, self.__asks.get_orders()))
+        elif side == D_SIDE_BID:
+            if self.__bids.get_count() >= size:
+                orders = self.__bids.get_orders()
+                for order in orders:
+                    order_price = order[0]
+                    order_size = order[1]
+                    if order_size >= left_size:
+                        amount = amount + order_price * left_size
+                        break
+                    else:
+                        amount = amount + order_price * order_size
+                        left_size = left_size - order_size
+                logger.debug("S %s [%s]" % (amount, self.__bids.get_orders()))
+        else:
+            logger.error("Unknown side '%s'", side)
+        return amount
 
     def search_metadata(self, side, size):
         pass

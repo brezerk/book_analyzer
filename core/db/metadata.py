@@ -24,8 +24,11 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+from typing import List, Union, Any
+
 # app imports
 from core.defines import *
+from core.db.types.bookrow import BookRow
 from core.logger import logger
 
 __author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
@@ -45,27 +48,36 @@ class Metadata(object):
     It is designed to reduce DB calls in excange of additional memory usage.
     """
 
-    def __init__(self):
+    def __init__(self, side=D_SIDE_ASK):
+        # type: (str) -> None
         self.__count = 0
-        self.__index = []
-        self.__orders = []
+        self.__index = []  # type: List[str]
+        self.__orders = []  # type: List[List[Any]]
+        self.__side = side
 
     def get_count(self):
+        # type: () -> int
         return self.__count
 
     def get_orders(self):
+        # type: () -> List[List[Any]]
         return self.__orders
 
     def get_index(self):
+        # type: () -> List[str]
         return self.__index
 
+    def has_index(self, index):
+        # type: (str) -> bool
+        return index in self.__index
+
     def get_order(self, order_id):
-        # Type: str -> List[int, int]
+        # type: (str) -> List[Any]
         index = self.__index.index(order_id)
         return self.__orders[index]
 
     def append(self, row):
-        # Type: BookRow -> None
+        # type: (BookRow) -> None
         """
         Inject row data into metadata DB
         """
@@ -73,9 +85,53 @@ class Metadata(object):
         if order_id in self.__index:
             logger.error("'%s' already in the list. Skipping." % (order_id))
             return
-        price = row.get_price()
         self.__count = self.__count + row.get_size()
 
+        if self.__side == D_SIDE_ASK:
+            self.append_ask(row)
+        elif self.__side == D_SIDE_BID:
+            self.append_bid(row)
+        else:
+            logger.error("Unknown side '%s'", self.__side)
+
+    def append_bid(self, row):
+        # type: (BookRow) -> None
+        """
+        Inject row data into metadata DB for BID
+        """
+        order_id = row.get_order_id()
+        price = row.get_price()
+        i = 0
+        # no, don't use enumirate on large arrays :)
+        for order in self.__orders:
+            if order[D_ORDER_PRICE] <= price:
+                self.__index.insert(i, order_id)
+                self.__orders.insert(
+                    i,
+                    [
+                        price,
+                        row.get_size()
+                    ])
+                injected = True
+                return
+            i += 1
+
+        # pushback
+        self.__index.append(order_id)
+        self.__orders.append(
+            [
+                price,
+                row.get_size()
+            ]
+        )
+
+    def append_ask(self, row):
+        # type: (BookRow) -> None
+        """
+        Inject row data into metadata DB for ASK
+        """
+        order_id = row.get_order_id()
+        price = row.get_price()
         i = 0
         # no, don't use enumirate on large arrays :)
         for order in self.__orders:
@@ -101,7 +157,7 @@ class Metadata(object):
         )
 
     def delete(self, row):
-        # Type: BookRow -> None
+        # type: (BookRow) -> None
         """
         Reduces size of order on specified amount (removes order if <= 0)
         """
@@ -121,3 +177,5 @@ class Metadata(object):
         else:
             self.__orders[index][D_ORDER_SIZE] = size_recorded - size
             self.__count = self.__count - size
+        if self.__count < 0:
+            self.__count = 0
