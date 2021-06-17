@@ -42,12 +42,19 @@ define create_venv
 	fi
 endef
 
+define make_docs
+endef
+
 all:
 
 dev:
 	rm -rf .venv
 	@$(call create_venv)
 	@$(call pip_install,-r REQUIREMENTS.DEV)
+	@$(call pip_install,-r REQUIREMENTS.DOCS)
+
+doc:
+	@$(call venv,PYTHONPATH=lib mkdocs build)
 
 prod:
 	rm -rf .venv
