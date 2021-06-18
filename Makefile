@@ -68,7 +68,7 @@ prod:
 tests: .venv
 	@$(call venv,PYTHONPATH=lib:./ pycodestyle -v ./core ./*.py ./test --ignore=E501,W391,E121,E123,E126,E226,E24,E704,W503,W504 --statistics)
 	@$(call venv,PYTHONPATH=lib:./ mypy ./)
-	@$(call venv,PYTHONPATH=lib:./ pytest)
+	@$(call venv,PYTHONPATH=lib:./ pytest -vv test/unit test/e2e)
 
 clean:
 	@./cleanup.sh

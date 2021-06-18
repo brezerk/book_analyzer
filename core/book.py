@@ -37,16 +37,6 @@ from core.exceptions import FileLoadError
 __author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
 __license__ = "CC0"
 
-D_INPUT_TS = 0
-D_INPUT_ACTION = 1
-D_INPUT_ORDER_ID = 2
-
-D_INPUT_A_SIDE = 3
-D_INPUT_A_PRICE = 4
-D_INPUT_A_SIZE = 5
-
-D_INPUT_R_SIZE = 3
-
 
 class BookAnalyzer:
     """
@@ -64,7 +54,7 @@ class BookAnalyzer:
         self.__target_size = target_size
         self.__stream = sys.stdin
         self.__db = MemoryDatabase()
-        self.__oef_term = False
+        self.__tail = False
 
         self.__last_bid = 0.0
         self.__last_ask = 0.0
@@ -83,7 +73,6 @@ class BookAnalyzer:
 
         instance = cls(target_size=target_size)
         instance.__stream = open(filename, mode='r')
-        instance.__oef_term = True
         return instance
 
     def run(self):
@@ -98,7 +87,7 @@ class BookAnalyzer:
                 if line:
                     self.parse(line)
                 else:
-                    if self.__oef_term:
+                    if not self.__tail:
                         break
         except KeyboardInterrupt:
             self.__stream.flush()
@@ -106,20 +95,28 @@ class BookAnalyzer:
 
     def search(self, timestamp):
         # type: (int) -> None
+        """
+        Search ask and bid metadata and display output if desired
+        target size is found. Print on change.
+        """
         cost_ask = self.__db.search(D_SIDE_ASK, self.__target_size)
         if cost_ask != self.__last_ask:
-            if cost_ask == 0.0:
-                print("%s B NA" % timestamp)
-            else:
-                print("%s B %.2f" % (timestamp, cost_ask))
+            self.__output(timestamp, D_SIDE_BID, cost_ask)
             self.__last_ask = cost_ask
         cost_bid = self.__db.search(D_SIDE_BID, self.__target_size)
         if cost_bid != self.__last_bid:
-            if cost_bid == 0.0:
-                print("%s S NA" % timestamp)
-            else:
-                print("%s S %.2f" % (timestamp, cost_bid))
+            self.__output(timestamp, D_SIDE_ASK, cost_bid)
             self.__last_bid = cost_bid
+
+    def __output(self, timestamp, side, amount):
+        # type: (int, str, float) -> None
+        """
+        Prints out output message to stdout
+        """
+        if not amount:
+            print("%s %s NA" % (timestamp, side))
+        else:
+            print("%s %s %.2f" % (timestamp, side, amount))
 
     def parse(self, line):
         # type: (str) -> None
@@ -129,12 +126,12 @@ class BookAnalyzer:
         args = line.split(" ")
         nargs = len(args)
         timestamp = int(args[D_INPUT_TS])
-        if nargs < 4:
+        if nargs < D_INOUT_R_ARGS:
             logger.error("Invalid message length: '%s'. Skip" % line)
             return
         action = args[D_INPUT_ACTION]
         if action == D_ORDER_ADD:
-            if nargs != 6:
+            if nargs != D_INOUT_A_ARGS:
                 logger.error("Invalid message length: '%s'. Skip" % line)
                 return
             self.__db.add(
@@ -147,7 +144,7 @@ class BookAnalyzer:
                 )
             )
         elif action == D_ORDER_REM:
-            if nargs != 4:
+            if nargs != D_INOUT_R_ARGS:
                 logger.error("Invalid message length: '%s'. Skip" % line)
                 return
             self.__db.remove(

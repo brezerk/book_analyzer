@@ -27,7 +27,7 @@
 # app imports
 from core.defines import *
 from core.db.base import BaseDatabase
-from core.db.metadata import Metadata
+from core.db.metadata import Metadata, D_ORDER_PRICE, D_ORDER_SIZE
 from core.db.types.bookrow import BookRow
 from core.logger import logger
 from core.exceptions import FileLoadError
@@ -48,6 +48,9 @@ class MemoryDatabase(BaseDatabase):
 
     def add(self, row):
         # type: (BookRow) -> None
+        """
+        Add row to metadata
+        """
         side = row.get_side()
         if side == D_SIDE_ASK:
             self.__asks.append(row)
@@ -58,6 +61,9 @@ class MemoryDatabase(BaseDatabase):
 
     def remove(self, row):
         # type: (BookRow) -> None
+        """
+        Remove row from metadata
+        """
         index = row.get_order_id()
         if self.__asks.has_index(index):
             self.__asks.delete(row)
@@ -68,37 +74,42 @@ class MemoryDatabase(BaseDatabase):
 
     def search(self, side, size):
         # type: (str, int) -> float
+        """
+        Search metadata if we have enough deals
+        to cover desired target size
+        """
         amount = 0.0
-        left_size = size
         if side == D_SIDE_ASK:
             if self.__asks.get_count() >= size:
-                orders = self.__asks.get_orders()
-                for order in orders:
-                    order_price = order[0]
-                    order_size = order[1]
-                    if order_size >= left_size:
-                        amount = amount + order_price * left_size
-                        break
-                    else:
-                        amount = amount + order_price * order_size
-                        left_size = left_size - order_size
-                logger.debug("B %s [%s]" % (amount, self.__asks.get_orders()))
+                amount = self.__sumup(side, size)
         elif side == D_SIDE_BID:
             if self.__bids.get_count() >= size:
-                orders = self.__bids.get_orders()
-                for order in orders:
-                    order_price = order[0]
-                    order_size = order[1]
-                    if order_size >= left_size:
-                        amount = amount + order_price * left_size
-                        break
-                    else:
-                        amount = amount + order_price * order_size
-                        left_size = left_size - order_size
-                logger.debug("S %s [%s]" % (amount, self.__bids.get_orders()))
+                amount = self.__sumup(side, size)
         else:
             logger.error("Unknown side '%s'", side)
         return amount
 
-    def search_metadata(self, side, size):
-        pass
+    def __sumup(self, side, size):
+        # type: (str, int) -> float
+        """
+        Lookup metadata array and sumup final cost
+        for desired target size
+        """
+        amount = 0.0
+        orders = []
+        left_size = size
+        if side == D_SIDE_ASK:
+            orders = self.__asks.get_orders()
+        else:
+            orders = self.__bids.get_orders()
+        for order in orders:
+            order_price = order[D_ORDER_PRICE]
+            order_size = order[D_ORDER_SIZE]
+            if order_size >= left_size:
+                amount = amount + order_price * left_size
+                break
+            else:
+                amount = amount + order_price * order_size
+                left_size = left_size - order_size
+            logger.debug("%s %s : %s" % (side, amount, orders))
+        return round(amount, 2)
