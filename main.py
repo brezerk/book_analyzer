@@ -84,11 +84,16 @@ if __name__ == "__main__":
                         action="store_true",
                         help='Enable debug output',
                         default=False)
+    parser.add_argument('--threaded',
+                        action="store_true",
+                        help='Enable enable threads (more likely will be slower, blame GIL, not me :D)',
+                        default=False)
 
     ns = parser.parse_args()
     filename = ns.input
     debug = ns.debug
     target_size = ns.target
+    threaded = ns.threaded
 
     if debug:
         handler.setLevel(logging.DEBUG)
@@ -116,6 +121,6 @@ if __name__ == "__main__":
         logger.debug("Reading data from input stream")
         book = BookAnalyzer(target_size=target_size)
 
-    book.run()
+    book.run(threaded)
 
     sys.exit(0)

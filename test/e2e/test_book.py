@@ -56,7 +56,17 @@ class TestMemoryDatabase(unittest.TestCase):
             self.assertEqual(mock_stdout.getvalue(), ref.read())
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_02_sample_200(self, mock_stdout):
+    def test_02_sample_small_broken(self, mock_stdout):
+        """
+        Test append with correct values
+        """
+        book = BookAnalyzer.load(target_size=200, filename=os.path.join(self.__location__, "data", "book_analyzer.small.broken.stdin"))
+        book.run()
+        with open(file=os.path.join(self.__location__, "data", "book_analyzer.small.stdout"), mode='r') as ref:
+            self.assertEqual(mock_stdout.getvalue(), ref.read())
+
+    @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
+    def test_03_sample_200(self, mock_stdout):
         """
         Test append with correct values
         """
@@ -66,7 +76,7 @@ class TestMemoryDatabase(unittest.TestCase):
             self.assertEqual(mock_stdout.getvalue(), ref.read())
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_03_sample_10000(self, mock_stdout):
+    def test_04_sample_10000(self, mock_stdout):
         """
         Test append with correct values
         """
@@ -76,7 +86,7 @@ class TestMemoryDatabase(unittest.TestCase):
             self.assertEqual(mock_stdout.getvalue(), ref.read())
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_04_full_1(self, mock_stdout):
+    def test_05_full_1(self, mock_stdout):
         """
         Test append with correct values
         """
@@ -86,7 +96,7 @@ class TestMemoryDatabase(unittest.TestCase):
             self.assertEqual(mock_stdout.getvalue(), ref.read())
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_04_full_200(self, mock_stdout):
+    def test_06_full_200(self, mock_stdout):
         """
         Test append with correct values
         """
@@ -96,7 +106,7 @@ class TestMemoryDatabase(unittest.TestCase):
             self.assertEqual(mock_stdout.getvalue(), ref.read())
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_04_full_10000(self, mock_stdout):
+    def test_07_full_10000(self, mock_stdout):
         """
         Test append with correct values
         """

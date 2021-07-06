@@ -24,8 +24,12 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+from typing import Any
+
 import os
 import sys
+import concurrent.futures
+from multiprocessing import Pool
 
 # app imports
 from core.defines import *
@@ -36,6 +40,13 @@ from core.exceptions import FileLoadError
 
 __author__ = "Oleksii S. Malakhov <brezerk@brezblock.org.ua>"
 __license__ = "CC0"
+
+
+def search(db, side, size):
+    """
+    Thread to search for possible incur
+    """
+    return db.search(side, size)
 
 
 class BookAnalyzer:
@@ -55,7 +66,8 @@ class BookAnalyzer:
         self.__stream = sys.stdin
         self.__db = MemoryDatabase()
         self.__tail = False
-
+        self.__threaded = False
+        self.__pool = None  # type: Any
         self.__last_bid = 0.0
         self.__last_ask = 0.0
 
@@ -75,11 +87,21 @@ class BookAnalyzer:
         instance.__stream = open(filename, mode='r')
         return instance
 
-    def run(self):
-        # type: () -> None
+    def run(self, threaded=False):
+        # type: (bool) -> None
         """
         Read stream
         """
+        self.__threaded = threaded
+        if self.__threaded:
+            with Pool(processes=2) as pool:
+                self.__pool = pool
+                self.__readstream()
+        else:
+            self.__readstream()
+
+    def __readstream(self):
+        # type: () -> None
         try:
             buff = ''
             while True:
@@ -99,11 +121,23 @@ class BookAnalyzer:
         Search ask and bid metadata and display output if desired
         target size is found. Print on change.
         """
-        cost_ask = self.__db.search(D_SIDE_ASK, self.__target_size)
+        cost_ask = 0.0
+        cost_bid = 0.0
+
+        # t makes perfect sence to implement this for langs like C++, but
+        # b/c of python GIL CPU intense threads will more likely downgrade the overall perfomance, rather than help
+        # so this is disabled by default
+        if self.__threaded:
+            task_ask = self.__pool.apply_async(search, (self.__db, D_SIDE_ASK, self.__target_size))
+            task_bid = self.__pool.apply_async(search, (self.__db, D_SIDE_BID, self.__target_size))
+            cost_ask = task_ask.get(timeout=60)
+            cost_bid = task_bid.get(timeout=60)
+        else:
+            cost_ask = self.__db.search(D_SIDE_ASK, self.__target_size)
+            cost_bid = self.__db.search(D_SIDE_BID, self.__target_size)
         if cost_ask != self.__last_ask:
             self.__output(timestamp, D_SIDE_BID, cost_ask)
             self.__last_ask = cost_ask
-        cost_bid = self.__db.search(D_SIDE_BID, self.__target_size)
         if cost_bid != self.__last_bid:
             self.__output(timestamp, D_SIDE_ASK, cost_bid)
             self.__last_bid = cost_bid
@@ -125,7 +159,11 @@ class BookAnalyzer:
         """
         args = line.split(" ")
         nargs = len(args)
-        timestamp = int(args[D_INPUT_TS])
+        try:
+            timestamp = int(args[D_INPUT_TS])
+        except ValueError as exp:
+            logger.error("Invalid message: %s", str(exp))
+            return
         if nargs < D_INOUT_R_ARGS:
             logger.error("Invalid message length: '%s'. Skip" % line)
             return
@@ -134,28 +172,34 @@ class BookAnalyzer:
             if nargs != D_INOUT_A_ARGS:
                 logger.error("Invalid message length: '%s'. Skip" % line)
                 return
-            self.__db.add(
-                BookRow(
+            try:
+                row = BookRow(
                     timestamp=int(args[D_INPUT_TS]),
                     order_id=args[D_INPUT_ORDER_ID],
                     side=args[D_INPUT_A_SIDE],
                     price=float(args[D_INPUT_A_PRICE]),
                     size=int(args[D_INPUT_A_SIZE])
                 )
-            )
+            except ValueError as exp:
+                logger.error("Invalid message: %s", str(exp))
+                return
+            self.__db.add(row)
         elif action == D_ORDER_REM:
             if nargs != D_INOUT_R_ARGS:
                 logger.error("Invalid message length: '%s'. Skip" % line)
                 return
-            self.__db.remove(
-                BookRow(
+            try:
+                row = BookRow(
                     timestamp=int(args[D_INPUT_TS]),
                     order_id=args[D_INPUT_ORDER_ID],
                     side="",
                     price=0.0,
                     size=int(args[D_INPUT_R_SIZE])
                 )
-            )
+            except ValueError as exp:
+                logger.error("Invalid message: %s", str(exp))
+                return
+            self.__db.remove(row)
         else:
             logger.error("Invalid message (action): '%s'. Skip" % line)
         self.search(timestamp)
